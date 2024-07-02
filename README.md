@@ -216,3 +216,9 @@ State 0111: Adds a_high * b_high, shifted left by 32 bits, to complete the upper
 #### State 1000 (Completion)
 
 Sets the product_ready flag to indicate the multiplication is complete.
+
+### Waveforms
+![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(1).png)
+![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(2).png)
+![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(3).png)
+![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(4).png)
