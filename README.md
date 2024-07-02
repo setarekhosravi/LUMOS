@@ -184,3 +184,35 @@ Upper 32 bits are calculated by adding shifted versions of the other partial pro
 State 1000: Set the product_ready flag
 
 This implementation allows for efficient 32x32 bit fixed-point multiplication using a smaller 16x16 bit multiplier.
+
+### Detailed State Machine Operation
+
+#### State 0000 (Start)
+
+* Checks if a multiplication operation is requested.
+* Splits both 32-bit operands into 16-bit high and low parts.
+
+
+#### States 0001-0100 (Partial Multiplications)
+
+* Uses the 16x16 bit multiplier module to perform four multiplications:
+
+a_low * b_low (State 0001-0002)
+a_high * b_low (State 0002-0003)
+a_low * b_high (State 0003-0004)
+a_high * b_high (State 0004-0101)
+
+
+Each result is stored in partialProduct1 through partialProduct4.
+
+
+#### States 0101-0111 (Combining Results)
+
+State 0101: Stores a_low * b_low directly in the lower 32 bits of the result.
+State 0110: Adds the middle terms (a_high * b_low and a_low * b_high), shifted left by 16 bits.
+State 0111: Adds a_high * b_high, shifted left by 32 bits, to complete the upper 32 bits of the result.
+
+
+#### State 1000 (Completion)
+
+Sets the product_ready flag to indicate the multiplication is complete.
