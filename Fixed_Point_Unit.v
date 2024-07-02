@@ -136,9 +136,78 @@ module Fixed_Point_Unit
     reg     [31 : 0] partialProduct3;
     reg     [31 : 0] partialProduct4;
 
-        /*
-         *  Describe Your 32-bit Multiplier Circuit Here.
-         */
+        // 32-bit multiplier using four 16-bit multiplications
+        reg [3:0] mult_state;
+        reg [15:0] a_high, a_low, b_high, b_low;
+        reg [31:0] temp_result;
+
+        always @(posedge clk or posedge reset) begin
+            if (reset) begin
+                mult_state <= 4'b0000;
+                product <= 64'b0;
+                product_ready <= 0;
+                partialProduct1 <= 32'b0;
+                partialProduct2 <= 32'b0;
+                partialProduct3 <= 32'b0;
+                partialProduct4 <= 32'b0;
+                temp_result <= 32'b0;
+            end else begin
+                case (mult_state)
+                    4'b0000: begin // Start multiplication
+                        if (operation == `FPU_MUL) begin
+                            a_high <= operand_1[31:16];
+                            a_low <= operand_1[15:0];
+                            b_high <= operand_2[31:16];
+                            b_low <= operand_2[15:0];
+                            mult_state <= 4'b0001;
+                            product_ready <= 0;
+                        end
+                    end
+                    4'b0001: begin // Multiply a_low * b_low
+                        multiplierCircuitInput1 <= a_low;
+                        multiplierCircuitInput2 <= b_low;
+                        mult_state <= 4'b0010;
+                    end
+                    4'b0010: begin // Store result and multiply a_high * b_low
+                        partialProduct1 <= multiplierCircuitResult;
+                        multiplierCircuitInput1 <= a_high;
+                        multiplierCircuitInput2 <= b_low;
+                        mult_state <= 4'b0011;
+                    end
+                    4'b0011: begin // Store result and multiply a_low * b_high
+                        partialProduct2 <= multiplierCircuitResult;
+                        multiplierCircuitInput1 <= a_low;
+                        multiplierCircuitInput2 <= b_high;
+                        mult_state <= 4'b0100;
+                    end
+                    4'b0100: begin // Store result and multiply a_high * b_high
+                        partialProduct3 <= multiplierCircuitResult;
+                        multiplierCircuitInput1 <= a_high;
+                        multiplierCircuitInput2 <= b_high;
+                        mult_state <= 4'b0101;
+                    end
+                    4'b0101: begin // Store final partial product and combine results
+                        partialProduct4 <= multiplierCircuitResult;
+                        temp_result <= partialProduct1;
+                        product[31:0] <= partialProduct1;
+                        mult_state <= 4'b0110;
+                    end
+                    4'b0110: begin // Add shifted partialProduct2 and partialProduct3
+                        temp_result <= temp_result + (partialProduct2 << 16) + (partialProduct3 << 16);
+                        mult_state <= 4'b0111;
+                    end
+                    4'b0111: begin // Add shifted partialProduct4 and set upper bits of product
+                        product[63:32] <= temp_result[31:0] + (partialProduct4 << 32);
+                        mult_state <= 4'b1000;
+                    end
+                    4'b1000: begin // Set product ready flag
+                        product_ready <= 1;
+                        mult_state <= 4'b0000;
+                    end
+                    default: mult_state <= 4'b0000;
+                endcase
+            end
+        end
          
 endmodule
 
