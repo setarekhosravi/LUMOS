@@ -40,9 +40,79 @@ module Fixed_Point_Unit
     reg [WIDTH - 1 : 0] root;
     reg root_ready;
 
-        /*
-         *  Describe Your Square Root Calculator Circuit Here.
-         */
+        // Square root calculation
+        reg [WIDTH-1:0] x, x_next;  // radicand
+        reg [WIDTH-1:0] q, q_next;  // result
+        reg [WIDTH-1:0] m, m_next;  // bitmask
+        reg [5:0] i, i_next;        // iteration counter
+        reg [2:0] state, next_state;
+
+        localparam IDLE = 3'd0, INIT = 3'd1, CALC = 3'd2, DONE = 3'd3;
+
+        always @(posedge clk or posedge reset) begin
+            if (reset) begin
+                state <= IDLE;
+                x <= 0;
+                q <= 0;
+                m <= 0;
+                i <= 0;
+                root_ready <= 0;
+            end else begin
+                state <= next_state;
+                x <= x_next;
+                q <= q_next;
+                m <= m_next;
+                i <= i_next;
+            end
+        end
+
+        always @(*) begin
+            next_state = state;
+            x_next = x;
+            q_next = q;
+            m_next = m;
+            i_next = i;
+            root = q;
+            root_ready = 0;
+
+            case (state)
+                IDLE: begin
+                    if (operation == `FPU_SQRT) begin
+                        next_state = INIT;
+                    end
+                end
+
+                INIT: begin
+                    x_next = operand_1;
+                    q_next = 0;
+                    m_next = 1 << (WIDTH - 2);
+                    i_next = (WIDTH + FBITS) >> 1;
+                    next_state = CALC;
+                end
+
+                CALC: begin
+                    if (i == 0) begin
+                        next_state = DONE;
+                    end else begin
+                        if ((q | m) <= x) begin
+                            x_next = x - (q | m);
+                            q_next = (q >> 1) | m;
+                        end else begin
+                            q_next = q >> 1;
+                        end
+                        m_next = m >> 2;
+                        i_next = i - 1;
+                    end
+                end
+
+                DONE: begin
+                    root_ready = 1;
+                    next_state = IDLE;
+                end
+
+                default: next_state = IDLE;
+            endcase
+        end
 
     // ------------------ //
     // Multiplier Circuit //
