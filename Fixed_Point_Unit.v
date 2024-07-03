@@ -37,75 +37,75 @@ module Fixed_Point_Unit
     // ------------------- //
     // Square Root Circuit //
     // ------------------- //
-    reg [WIDTH-1:0] root;
+    reg [WIDTH - 1 : 0] root;
     reg root_ready;
+
+    // here is the code for sqrt module
+    // reference: https://github.com/IUST-Computer-Organization/Spring-2023/blob/main/Final_Project/RV32IMF_Processor/SQRT_Unit.v
     
-    reg [WIDTH-1:0] x, x_next;  // radicand
-    reg [WIDTH-1:0] q, q_next;  // result
-    reg [WIDTH-1:0] m, m_next;  // bitmask
-    reg [5:0] i, i_next;        // iteration counter
-    reg [2:0] state, next_state;
+    reg [WIDTH - 1 : 0] x, x_next;              
+    reg [WIDTH - 1 : 0] q, q_next;              
+    reg [WIDTH + 1 : 0] ac, ac_next;            
+    reg [WIDTH + 1 : 0] test_res;               
 
-    localparam IDLE = 3'd0, INIT = 3'd1, CALC = 3'd2, DONE = 3'd3;
+    reg [WIDTH - 1 : 0] root;
+    reg valid;
+    reg sqrt_start;
+    reg sqrt_busy;
+    
 
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            state <= IDLE;
-            x <= 0;
-            q <= 0;
-            m <= 0;
+    localparam ITER = (WIDTH + FBITS) >> 1;     
+    reg [4 : 0] i = 0;                              
+
+    
+    always @(*)
+    begin
+        test_res = ac - {q, 2'b01};
+
+        if (test_res[WIDTH + 1] == 0) 
+        begin  // test_res ≥0? (check MSB)
+            {ac_next, x_next} = {test_res[WIDTH - 1 : 0], x, 2'b0};
+            q_next = {q[WIDTH - 2 : 0], 1'b1};
+        end 
+        else 
+        begin
+            {ac_next, x_next} = {ac[WIDTH - 1 : 0], x, 2'b0};
+            q_next = q << 1;
+        end
+    end
+    
+
+    always @(negedge CLK) 
+    begin
+        if (start) 
+        begin
+            sqrt_busy <= 1;
+            valid <= 0;
             i <= 0;
-            root_ready <= 0;
+            q <= 0;
+            {ac, x} <= {{WIDTH{1'b0}}, rad, 2'b0};
+        end 
+        
+        else if (sqrt_busy) 
+        begin
+
+            if (i == ITER-1) 
+            begin  // we're done
+                sqrt_busy <= 0;
+                valid <= 1;
+                root <= q_next;
+            end
+
+            else 
+            begin  // next iteration
+                i <= i + 1;
+                x <= x_next;
+                ac <= ac_next;
+                q <= q_next;
+            end
         end
     end
 
-    always @(*) begin
-        next_state = state;
-        x_next = x;
-        q_next = q;
-        m_next = m;
-        i_next = i;
-        root = q;
-        root_ready = 0;
-
-        case (state)
-            IDLE: begin
-                if (operation == `FPU_SQRT) begin
-                    next_state = INIT;
-                end
-            end
-
-            INIT: begin
-                x_next = operand_1;
-                q_next = 0;
-                m_next = 1 << (WIDTH - 2);
-                i_next = (WIDTH + FBITS) >> 1;
-                next_state = CALC;
-            end
-
-            CALC: begin
-                if (i == 0) begin
-                    next_state = DONE;
-                end else begin
-                    if ((q | m) <= x) begin
-                        x_next = x - (q | m);
-                        q_next = (q >> 1) | m;
-                    end else begin
-                        q_next = q >> 1;
-                    end
-                    m_next = m >> 2;
-                    i_next = i - 1;
-                end
-            end
-
-            DONE: begin
-                root_ready = 1;
-                next_state = IDLE;
-            end
-
-            default: next_state = IDLE;
-        endcase
-    end
 
     // ------------------ //
     // Multiplier Circuit //
