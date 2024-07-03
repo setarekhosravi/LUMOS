@@ -42,13 +42,35 @@ module Fixed_Point_Unit
 
     // here is the code for sqrt module
     // reference: https://github.com/IUST-Computer-Organization/Spring-2023/blob/main/Final_Project/RV32IMF_Processor/SQRT_Unit.v
-    
+
+    reg [1 : 0] stage;
+    reg [1 : 0] next_stage;
+
+    always @(posedge clk) 
+    begin
+        if (operation == `FPU_SQRT) stage <= next_stage;
+        else                        
+        begin
+            stage <= 2'b00;
+            root_ready <= 0;
+        end
+    end 
+
+    always @(*) 
+    begin
+        next_stage <= 0;
+        case (stage)
+            2'b00 : begin sqrt_start <= 0; next_stage <= 2'b01; end
+            2'b01 : begin sqrt_start <= 1; next_stage <= 2'b10; end
+            2'b10 : begin sqrt_start <= 0; next_stage <= 2'b10; end
+        endcase    
+    end
+
     reg [WIDTH - 1 : 0] x, x_next;              
     reg [WIDTH - 1 : 0] q, q_next;              
     reg [WIDTH + 1 : 0] ac, ac_next;            
     reg [WIDTH + 1 : 0] test_res;               
 
-    reg [WIDTH - 1 : 0] root;
     reg valid;
     reg sqrt_start;
     reg sqrt_busy;
@@ -63,7 +85,7 @@ module Fixed_Point_Unit
         test_res = ac - {q, 2'b01};
 
         if (test_res[WIDTH + 1] == 0) 
-        begin  // test_res ≥0? (check MSB)
+        begin
             {ac_next, x_next} = {test_res[WIDTH - 1 : 0], x, 2'b0};
             q_next = {q[WIDTH - 2 : 0], 1'b1};
         end 
@@ -74,25 +96,23 @@ module Fixed_Point_Unit
         end
     end
     
-
-    always @(negedge CLK) 
+    always @(posedge clk) 
     begin
-        if (start) 
+        if (sqrt_start)
         begin
             sqrt_busy <= 1;
-            valid <= 0;
+            root_ready <= 0;
             i <= 0;
             q <= 0;
-            {ac, x} <= {{WIDTH{1'b0}}, rad, 2'b0};
-        end 
-        
-        else if (sqrt_busy) 
-        begin
+            {ac, x} <= {{WIDTH{1'b0}}, operand_1, 2'b0};
+        end
 
+        else if (sqrt_busy)
+        begin
             if (i == ITER-1) 
             begin  // we're done
                 sqrt_busy <= 0;
-                valid <= 1;
+                root_ready <= 1;
                 root <= q_next;
             end
 
@@ -102,6 +122,7 @@ module Fixed_Point_Unit
                 x <= x_next;
                 ac <= ac_next;
                 q <= q_next;
+                root_ready <= 0;
             end
         end
     end
