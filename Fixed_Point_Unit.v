@@ -13,17 +13,19 @@ module Fixed_Point_Unit
     input wire [WIDTH - 1 : 0] operand_2,
     
     input wire [ 1 : 0] operation,
+
     output reg [WIDTH - 1 : 0] result,
     output reg ready
 );
+
     always @(*)
     begin
         case (operation)
-            `FPU_ADD    : begin result <= operand_1 + operand_2; ready <= 1; end
-            `FPU_SUB    : begin result <= operand_1 - operand_2; ready <= 1; end
-            `FPU_MUL    : begin result <= product[WIDTH + FBITS - 1 : FBITS]; ready <= product_ready; end
-            `FPU_SQRT   : begin result <= root; ready <= root_ready; end
-            default     : begin result <= 'bz; ready <= 0; end
+            `FPU_ADD    : begin result = operand_1 + operand_2; ready = 1; end
+            `FPU_SUB    : begin result = operand_1 - operand_2; ready = 1; end
+            `FPU_MUL    : begin result = product[WIDTH + FBITS - 1 : FBITS]; ready = product_ready; end
+            `FPU_SQRT   : begin result = root; ready = root_ready; end
+            default     : begin result = 'bz; ready = 0; end
         endcase
     end
 
@@ -32,7 +34,6 @@ module Fixed_Point_Unit
         if (reset)  ready = 0;
         else        ready = 'bz;
     end
-
     // ------------------- //
     // Square Root Circuit //
     // ------------------- //
@@ -55,12 +56,6 @@ module Fixed_Point_Unit
             m <= 0;
             i <= 0;
             root_ready <= 0;
-        end else begin
-            state <= next_state;
-            x <= x_next;
-            q <= q_next;
-            m <= m_next;
-            i <= i_next;
         end
     end
 
@@ -115,25 +110,28 @@ module Fixed_Point_Unit
     // ------------------ //
     // Multiplier Circuit //
     // ------------------ //   
-    reg [63 : 0] product;
+    reg [64 - 1 : 0] product;
     reg product_ready;
-    reg [15 : 0] multiplierCircuitInput1;
-    reg [15 : 0] multiplierCircuitInput2;
-    wire [31 : 0] multiplierCircuitResult;
+
+    reg     [15 : 0] multiplierCircuitInput1;
+    reg     [15 : 0] multiplierCircuitInput2;
+    wire    [31 : 0] multiplierCircuitResult;
+
     Multiplier multiplier_circuit
     (
         .operand_1(multiplierCircuitInput1),
         .operand_2(multiplierCircuitInput2),
         .product(multiplierCircuitResult)
     );
-    reg [31 : 0] partialProduct1;
-    reg [31 : 0] partialProduct2;
-    reg [31 : 0] partialProduct3;
-    reg [31 : 0] partialProduct4;
 
     reg [3:0] mult_state;
     reg [15:0] a_high, a_low, b_high, b_low;
     reg [31:0] temp_result;
+
+    reg     [31 : 0] partialProduct1;
+    reg     [31 : 0] partialProduct2;
+    reg     [31 : 0] partialProduct3;
+    reg     [31 : 0] partialProduct4;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
