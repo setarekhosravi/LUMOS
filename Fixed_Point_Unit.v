@@ -141,18 +141,18 @@ module Fixed_Point_Unit
 
     always @(*) 
     begin
-        mult_stage_next <= 'bz;
+        mult_stage_next <= 0;
         case (mult_stage)
             3'b000 : begin
                 product_ready <= 0;
 
-                multiplierCircuitInput1 <= 'bz;
-                multiplierCircuitInput2 <= 'bz;
+                multiplierCircuitInput1 <= 0;
+                multiplierCircuitInput2 <= 0;
 
-                partialProduct1 <= 'bz;
-                partialProduct2 <= 'bz;
-                partialProduct3 <= 'bz;
-                partialProduct4 <= 'bz;
+                partialProduct1 <= 0;
+                partialProduct2 <= 0;
+                partialProduct3 <= 0;
+                partialProduct4 <= 0;
 
                 a_high <= operand_1[31:16];
                 a_low <= operand_1[15:0];
