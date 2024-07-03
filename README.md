@@ -155,67 +155,66 @@ The multiplication is performed using a state machine and a 16x16 bit multiplier
 
 #### States
 
-The multiplier goes through 9 states (0000 to 1000) to complete a multiplication.
+The multiplier goes through 6 states to complete a multiplication.
 
 #### Key Variables
 
 * a_high, a_low: Upper and lower 16 bits of operand_1
 * b_high, b_low: Upper and lower 16 bits of operand_2
 * partialProduct1 to partialProduct4: Store results of partial multiplications
-* temp_result: Used for intermediate calculations
 
-#### Algorithm
+#### Features
 
-State 0000: Start multiplication, split operands into high and low parts
-States 0001-0100: Perform four 16x16 multiplications:
+* Performs 32x32 bit fixed-point multiplication
+* Uses a smaller 16x16 bit multiplier to save resources
+* Implements a state machine for controlled execution
+* Provides a ready signal to indicate when the result is available
 
+### Implementation Details
+#### State Machine
+The multiplier uses a 6-state machine to control the multiplication process:
+
+* FRST: Initialization
+* SEC: Multiply a_low * b_low
+* THRD: Multiply a_high * b_low
+* FRTH: Multiply a_low * b_high
+* FFTH: Multiply a_high * b_high
+* FNL: Combine partial products and finalize result
+
+#### Key Components
+
+* multiplierCircuitInput1, multiplierCircuitInput2: Inputs to the 16x16 multiplier
+* multiplierCircuitResult: Output from the 16x16 multiplier
+* partialProduct1 to partialProduct4: Store results of partial multiplications
+* product: 64-bit register to store the final result
+* product_ready: Flag to indicate when the multiplication is complete
+
+#### Multiplication Process
+
+The 32-bit operands are split into 16-bit high and low parts.
+Four 16x16 multiplications are performed sequentially:
+
+```
 a_low * b_low
 a_high * b_low
 a_low * b_high
 a_high * b_high
+```
 
 
-States 0101-0111: Combine partial products:
+The partial products are combined with appropriate shifts:
+```
+product <= partialProduct1 + (partialProduct2 << 16) + (partialProduct3 << 16) + (partialProduct4 << 32);
+```
 
-Lower 32 bits of the result come directly from a_low * b_low
-Upper 32 bits are calculated by adding shifted versions of the other partial products
+The product_ready flag is set to indicate completion.
 
+#### Usage
+The multiplier is triggered when the operation input is set to FPU_MUL. The result is available in the product register, with the product_ready flag indicating when it's valid.
 
-State 1000: Set the product_ready flag
-
-This implementation allows for efficient 32x32 bit fixed-point multiplication using a smaller 16x16 bit multiplier.
-
-### Detailed State Machine Operation
-
-#### State 0000 (Start)
-
-* Checks if a multiplication operation is requested.
-* Splits both 32-bit operands into 16-bit high and low parts.
-
-
-#### States 0001-0100 (Partial Multiplications)
-
-* Uses the 16x16 bit multiplier module to perform four multiplications:
-
-a_low * b_low (State 0001-0002)
-a_high * b_low (State 0002-0003)
-a_low * b_high (State 0003-0004)
-a_high * b_high (State 0004-0101)
-
-
-Each result is stored in partialProduct1 through partialProduct4.
-
-
-#### States 0101-0111 (Combining Results)
-
-State 0101: Stores a_low * b_low directly in the lower 32 bits of the result.
-State 0110: Adds the middle terms (a_high * b_low and a_low * b_high), shifted left by 16 bits.
-State 0111: Adds a_high * b_high, shifted left by 32 bits, to complete the upper 32 bits of the result.
-
-
-#### State 1000 (Completion)
-
-Sets the product_ready flag to indicate the multiplication is complete.
+#### Performance
+The multiplication completes in 6 clock cycles.
+The design balances resource usage and performance by utilizing a smaller multiplier multiple times.
 
 ### Waveforms
 ![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(1).png)
