@@ -58,96 +58,8 @@ The code processes these points/vectors in a loop, starting from memory address 
 
 This module implements a Fixed Point Unit with support for addition, subtraction, multiplication, and square root operations.
 
-### Square Root Implementation
-
-The square root calculation uses a non-restoring algorithm implemented as a state machine. Here's how it works:
-
-#### States
-
-* IDLE: Waiting for a square root operation
-* INIT: Initializing variables for calculation
-* CALC: Performing the square root calculation
-* DONE: Calculation complete, result ready
-
-#### Key Variables
-
-* x: The radicand (input number)
-* q: The result (square root)
-* m: A bitmask used in the calculation
-* i: Iteration counter
-
-#### Algorithm
-
-In the INIT state, variables are set up:
-
-* x is set to the input operand
-* q is initialized to 0
-* m is set to 1 shifted left by (WIDTH - 2) bits
-* i is set to (WIDTH + FBITS) / 2, determining the number of iterations
-
-
-In the CALC state, for each iteration:
-
-If (q | m) <= x, then:
-
-x is updated to x - (q | m)
-q is updated to (q >> 1) | m
-
-
-Otherwise:
-
-q is just right-shifted by 1
-
-
-m is right-shifted by 2
-i is decremented
-
-<div align="justify">
-
-The calculation continues until i reaches 0, then moves to the DONE state
-In the DONE state, the result is made available and the state returns to IDLE.
-This implementation provides an efficient fixed-point square root calculation.
-
-</div>
-
-### More Information
-
-#### State Machine Details
-
-##### IDLE State
-
-* The module waits here until a square root operation (FPU_SQRT) is requested.
-* This state ensures that the square root circuit doesn't consume power when not in use.
-
-
-##### INIT State
-
-* x_next = operand_1: The input number is loaded into x.
-* q_next = 0: The result is initialized to 0.
-* m_next = 1 << (WIDTH - 2): Sets the initial bitmask. For a 32-bit number, this would be 0x40000000.
-* i_next = (WIDTH + FBITS) >> 1: Calculates the number of iterations. For WIDTH=32 and FBITS=10, this would be 21 iterations.
-
-
-##### CALC State
-
-* This is where the core algorithm runs.
-* The condition (q | m) <= x checks if we can subtract the current test bit without going negative.
-* If true, we perform the subtraction and set the corresponding bit in the result.
-* The right shift of q and m prepares for the next iteration.
-* This process continues for i iterations, ensuring we calculate to the precision of our fixed-point format.
-
-
-##### DONE State
-
-* Sets root_ready to 1, signaling that the result is available.
-* Transitions back to IDLE, ready for the next operation.
-
-
-#### Fixed-Point Considerations
-
-* The algorithm naturally works with fixed-point numbers because it operates on the bits directly.
-* The number of iterations (WIDTH + FBITS) / 2 ensures we calculate enough bits for our fixed-point representation.
-* No explicit scaling is needed in the algorithm itself; the result is inherently in the correct fixed-point format.
+### SQRT 
+pass
 
 ### Multiplier Implementation
 
@@ -217,7 +129,4 @@ The multiplication completes in 6 clock cycles.
 The design balances resource usage and performance by utilizing a smaller multiplier multiple times.
 
 ### Waveforms
-![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(1).png)
-![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(2).png)
-![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(3).png)
-![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/waveform%20(4).png)
+![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/corrected.png)
