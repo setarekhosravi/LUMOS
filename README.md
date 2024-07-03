@@ -129,4 +129,4 @@ The multiplication completes in 6 clock cycles.
 The design balances resource usage and performance by utilizing a smaller multiplier multiple times.
 
 ### Waveforms
-![alt text](https://github.com/setarekhosravi/LUMOS/blob/main/Images/corrected.png)
+![alt text]()
