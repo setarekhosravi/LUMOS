@@ -133,6 +133,9 @@ module Fixed_Point_Unit
     reg [2 : 0] mult_stage_next;
     reg [15:0] a_high, a_low, b_high, b_low;
 
+    // define mul stages
+    localparam FRST = 3'b000, SEC = 3'b001, THRD = 3'b010, FRTH = 3'b011, FFTH = 3'b100, FNL = 3'b101;   
+
     always @(posedge clk) 
     begin
         if (operation == `FPU_MUL)  mult_stage <= mult_stage_next;
@@ -143,7 +146,7 @@ module Fixed_Point_Unit
     begin
         mult_stage_next <= 0;
         case (mult_stage)
-            3'b000 : begin
+            FRST : begin
                 product_ready <= 0;
 
                 multiplierCircuitInput1 <= 0;
@@ -159,39 +162,39 @@ module Fixed_Point_Unit
                 b_high <= operand_2[31:16];
                 b_low <= operand_2[15:0];
 
-                mult_stage_next <= 3'b001;
+                mult_stage_next <= SEC;
             end 
-            3'b001 : begin // Multiply a_low * b_low
+            SEC : begin // Multiply a_low * b_low
                 multiplierCircuitInput1 <= a_low;
                 multiplierCircuitInput2 <= b_low;
                 partialProduct1 <= multiplierCircuitResult;
-                mult_stage_next <= 3'b010;
+                mult_stage_next <= THRD;
             end
-            3'b010 : begin // Store result and multiply a_high * b_low
+            THRD : begin // Store result and multiply a_high * b_low
                 multiplierCircuitInput1 <= a_high;
                 multiplierCircuitInput2 <= b_low;
                 partialProduct2 <= multiplierCircuitResult;
-                mult_stage_next <= 3'b011;
+                mult_stage_next <= FRTH;
             end
-            3'b011 : begin // Store result and multiply a_low * b_high
+            FRTH : begin // Store result and multiply a_low * b_high
                 multiplierCircuitInput1 <= a_low;
                 multiplierCircuitInput2 <= b_high;
                 partialProduct3 <= multiplierCircuitResult;
-                mult_stage_next <= 3'b100;
+                mult_stage_next <= FFTH;
             end
-            3'b100 : begin // Store result and multiply a_high * b_high
+            FFTH : begin // Store result and multiply a_high * b_high
                 multiplierCircuitInput1 <= a_high;
                 multiplierCircuitInput2 <= b_high;
                 partialProduct4 <= multiplierCircuitResult;
-                mult_stage_next <= 3'b101;
+                mult_stage_next <= FNL;
             end
-            3'b101 : begin // Store final partial product and combine results
+            FNL : begin // Store final partial product and combine results
                 product <= partialProduct1 + (partialProduct2 << 16) + (partialProduct3 << 16) + (partialProduct4 << 32);
-                mult_stage_next <= 3'b000;
+                mult_stage_next <= FRST;
                 product_ready <= 1;
             end
 
-            default: mult_stage_next <= 3'b000;
+            default: mult_stage_next <= FRST;
         endcase    
     end
 endmodule
