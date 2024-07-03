@@ -52,8 +52,8 @@ module Fixed_Point_Unit
 
 
     reg valid;
-    reg sqrt_start;
-    reg sqrt_busy;
+    reg start;
+    reg busy;
     
 
     localparam ITER = (WIDTH + FBITS) >> 1;     
@@ -72,15 +72,15 @@ module Fixed_Point_Unit
     end
     
     always @(posedge clk)  begin
-        if (sqrt_start) begin
-            sqrt_busy <= 1;
+        if (start) begin
+            busy <= 1;
             valid <= 0;
             i <= 0;
             q <= 0;
             {ac, x} <= {{WIDTH{1'b0}}, operand_1, 2'b0};
-        end else if (sqrt_busy) begin
+        end else if (busy) begin
             if (i == ITER-1) begin  // we're done
-                sqrt_busy <= 0;
+                busy <= 0;
                 valid <= 1;
                 root <= q_next;
                 rem <= ac_next[WIDTH+1:2];  // undo final shift
