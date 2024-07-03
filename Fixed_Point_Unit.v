@@ -124,86 +124,83 @@ module Fixed_Point_Unit
         .product(multiplierCircuitResult)
     );
 
-    reg [3:0] mult_state;
-    reg [15:0] a_high, a_low, b_high, b_low;
-
     reg     [31 : 0] partialProduct1;
     reg     [31 : 0] partialProduct2;
     reg     [31 : 0] partialProduct3;
     reg     [31 : 0] partialProduct4;
 
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            mult_state <= 4'b0000;
-            product <= 64'b0;
-            product_ready <= 0;
-            partialProduct1 <= 32'b0;
-            partialProduct2 <= 32'b0;
-            partialProduct3 <= 32'b0;
-            partialProduct4 <= 32'b0;
-            temp_result <= 32'b0;
-        end else begin
-            case (mult_state)
-                3'b000: begin // Start multiplication
-                    if (operation == `FPU_MUL) begin
-                        product_ready <= 0;
+    reg [2 : 0] mult_stage;
+    reg [2 : 0] mult_stage_next;
+    reg [15:0] a_high, a_low, b_high, b_low;
 
-                        multiplierCircuitInput1 <= 'bz;
-                        multiplierCircuitInput2 <= 'bz;
-
-                        partialProduct1 <= 'bz;
-                        partialProduct2 <= 'bz;
-                        partialProduct3 <= 'bz;
-                        partialProduct4 <= 'bz;
-
-                        a_high <= operand_1[31:16];
-                        a_low <= operand_1[15:0];
-                        b_high <= operand_2[31:16];
-                        b_low <= operand_2[15:0];
-                        mult_state <= 3'b001;
-                        product_ready <= 0;
-                    end
-                end
-                3'b001: begin // Multiply a_low * b_low
-                    multiplierCircuitInput1 <= a_low;
-                    multiplierCircuitInput2 <= b_low;
-                    partialProduct1 <= multiplierCircuitResult;
-                    mult_state <= 3'b010;
-                end
-                3'b010: begin // Store result and multiply a_high * b_low
-                    multiplierCircuitInput1 <= a_high;
-                    multiplierCircuitInput2 <= b_low;
-                    partialProduct2 <= multiplierCircuitResult;
-                    mult_state <= 3'b011;
-                end
-                3'b011: begin // Store result and multiply a_low * b_high
-                    multiplierCircuitInput1 <= a_low;
-                    multiplierCircuitInput2 <= b_high;
-                    partialProduct3 <= multiplierCircuitResult;
-                    mult_state <= 3'b100;
-                end
-                3'b100: begin // Store result and multiply a_high * b_high
-                    multiplierCircuitInput1 <= a_high;
-                    multiplierCircuitInput2 <= b_high;
-                    partialProduct3 <= multiplierCircuitResult;
-                    mult_state <= 3'b101;
-                end
-                3'b101: begin // Store final partial product and combine results
-                    product <= partialProduct1 + (partialProduct2 << 16) + (partialProduct3 << 16) + (partialProduct4 << 32);
-                    product_ready <= 1;
-                     mult_state <= 3'b000;
-                end
-                default: mult_state <= 3'b000;
-            endcase
-        end
+    always @(posedge clk) 
+    begin
+        if (operation == `FPU_MUL)  mult_stage <= mult_stage_next;
+        else                        mult_stage <= 'b0;
     end
-         
+
+    always @(*) 
+    begin
+        mult_stage_next <= 'bz;
+        case (mult_stage)
+            3'b000 : begin
+                product_ready <= 0;
+
+                multiplierCircuitInput1 <= 'bz;
+                multiplierCircuitInput2 <= 'bz;
+
+                partialProduct1 <= 'bz;
+                partialProduct2 <= 'bz;
+                partialProduct3 <= 'bz;
+                partialProduct4 <= 'bz;
+
+                a_high <= operand_1[31:16];
+                a_low <= operand_1[15:0];
+                b_high <= operand_2[31:16];
+                b_low <= operand_2[15:0];
+
+                mult_stage_next <= 3'b001;
+            end 
+            3'b001 : begin // Multiply a_low * b_low
+                multiplierCircuitInput1 <= a_low;
+                multiplierCircuitInput2 <= b_low;
+                partialProduct1 <= multiplierCircuitResult;
+                mult_stage_next <= 3'b010;
+            end
+            3'b010 : begin // Store result and multiply a_high * b_low
+                multiplierCircuitInput1 <= a_high;
+                multiplierCircuitInput2 <= b_low;
+                partialProduct2 <= multiplierCircuitResult;
+                mult_stage_next <= 3'b011;
+            end
+            3'b011 : begin // Store result and multiply a_low * b_high
+                multiplierCircuitInput1 <= a_low;
+                multiplierCircuitInput2 <= b_high;
+                partialProduct3 <= multiplierCircuitResult;
+                mult_stage_next <= 3'b100;
+            end
+            3'b100 : begin // Store result and multiply a_high * b_high
+                multiplierCircuitInput1 <= a_high;
+                multiplierCircuitInput2 <= b_high;
+                partialProduct4 <= multiplierCircuitResult;
+                mult_stage_next <= 3'b101;
+            end
+            3'b101 : begin // Store final partial product and combine results
+                product <= partialProduct1 + (partialProduct2 << 16) + (partialProduct3 << 16) + (partialProduct4 << 32);
+                mult_stage_next <= 3'b000;
+                product_ready <= 1;
+            end
+
+            default: mult_stage_next <= 3'b000;
+        endcase    
+    end
 endmodule
 
 module Multiplier
 (
     input wire [15 : 0] operand_1,
     input wire [15 : 0] operand_2,
+
     output reg [31 : 0] product
 );
     always @(*)
