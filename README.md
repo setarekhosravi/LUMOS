@@ -59,7 +59,62 @@ The code processes these points/vectors in a loop, starting from memory address 
 This module implements a Fixed Point Unit with support for addition, subtraction, multiplication, and square root operations.
 
 ### SQRT 
-pass
+
+This Verilog module implements an iterative square root calculation algorithm. It computes the square root of a given input operand using a non-restoring method.
+
+#### Features
+
+* Configurable bit width
+* Supports fixed-point representation
+* Provides both the root and remainder
+* Implements a busy-valid handshake protocol
+
+#### Parameters
+
+* `WIDTH`: Total bit width of the operand and result
+* `FBITS`: Number of fractional bits (for fixed-point representation)
+
+#### Inputs
+
+* `clk`: Clock signal
+* `start`: Start signal to initiate the calculation
+* `operand_1`: Input operand to calculate the square root of
+
+#### Outputs
+
+* `root`: Calculated square root
+* `rem`: Remainder of the calculation
+* `busy`: Indicates that the module is currently processing
+* `valid`: Indicates that the result is valid and ready
+
+#### Operation
+
+1. When `start` is asserted, the module begins the square root calculation.
+2. The `busy` signal is set high during computation.
+3. The algorithm performs `ITER` iterations, where `ITER = (WIDTH + FBITS) >> 1`.
+4. Once the calculation is complete, `busy` is set low and `valid` is set high.
+5. The result can be read from `root`, and the remainder from `rem`.
+
+#### Usage
+
+1. Set the `WIDTH` and `FBITS` parameters according to your needs.
+2. Provide the clock signal and the input operand.
+3. Assert the `start` signal to begin calculation.
+4. Wait for the `valid` signal to be asserted.
+5. Read the result from `root` and `rem` outputs.
+
+#### Note
+
+This implementation is based on the non-restoring square root algorithm. For more details on the algorithm, refer to the original source: https://projectf.io/posts/square-root-in-verilog/
+
+#### Performance
+
+The module requires `ITER` clock cycles to complete the calculation. The exact number of cycles depends on the `WIDTH` and `FBITS` parameters.
+
+#### Limitations
+
+- The module does not handle edge cases such as calculating the square root of zero or negative numbers.
+- The accuracy of the result depends on the chosen `WIDTH` and `FBITS` parameters.
 
 ### Multiplier Implementation
 
